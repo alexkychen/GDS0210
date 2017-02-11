@@ -1,0 +1,8 @@
+Package: genedrive
+Version: 0.0
+Title: Gene Drive System Simulation
+Author: Kuan-Yu (Alex) Chen
+Maintainer: Kuan-Yu (Alex) Chen
+Description: Text will be added
+Depends: R (>=3.2.0)
+License: MIT
