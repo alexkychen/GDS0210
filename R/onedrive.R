@@ -5,6 +5,7 @@
 #' @param release A vector of two integers to indicate the number of individuals (first is female; second is male) carrying gene drive to be released to the populaton. release = c(100, 50) means 100 females and 50 males carrying the drive are released to the population.
 #' @param mature.age 
 #' @param repro.mode
+#' @param mortality
 #' @param 
 #' 
 #' 
