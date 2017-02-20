@@ -3,6 +3,7 @@ library(ggplot2)
 
 ui <- fluidPage(
   titlePanel("Gene drive simulator"),
+  helpText("This page helps simulate how many generations a gene drive would take to be spread out the entire population (i.e., gene drive frequency = 1)."),
   #Input
   sidebarLayout(
     sidebarPanel(
