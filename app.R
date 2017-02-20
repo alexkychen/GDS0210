@@ -10,7 +10,7 @@ ui <- fluidPage(
       numericInput(inputId = "release",label = "Released gene drive (individual)", 20),
       selectInput(inputId = "drawline", label = "Draw regression", choices = c("None"="none","Logistic regression"="logistic","Linear regression"="linear")),
       actionButton("go", label="Simulate")
-      
+  
     ),
     mainPanel(
       #Output
@@ -23,6 +23,13 @@ server <- function(input, output){
   data <- eventReactive(input$go, {
     wild <- round(input$popsize / input$release)
     drive <- 1
+    if(wild > 90){
+        showModal(modalDialog(
+          title="Important message",
+          "The ratio of wild population to gene drive is large. Simulation will take a few minutes or longer. Please be patient!", easyClose=T
+        ))
+    }
+
     #define a function to get the next gene drive generation
     driveNextGen <- function(wild=NULL, drive=NULL){
       F0 <- c(rep("W", wild*2), rep("G", drive*2)) #F0 gametes
@@ -43,10 +50,10 @@ server <- function(input, output){
     driveFreq <- drive / (drive + wild)
     df <- data.frame(0, driveFreq)
     gen <- 0
-    
     #Simulate gene drive freq across generations until drive freq = 1
     while(!is.na(wild)){ #keep looping until wild becomes NA
       gen <- gen + 1
+      showNotification(ui=paste0("Simulating F",gen," generation..."), id = paste0("F",gen), duration = NULL)
       res <- driveNextGen(wild=wild, drive=drive)
       restb <- table(res)
       wild <- restb[2]
@@ -54,6 +61,7 @@ server <- function(input, output){
       driveFreq <- restb[1]/sum(restb) #restb[1] is restb[names(restb)=="G]
       data <- c(gen, driveFreq)
       df <- rbind(df, data)
+      removeNotification(id = paste0("F",gen))
     }
     #Create plot
     ggplot(data=df, aes(x=X0, y=driveFreq))+
