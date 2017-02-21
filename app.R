@@ -3,19 +3,30 @@ library(ggplot2)
 
 ui <- fluidPage(
   titlePanel("Gene drive simulator"),
-  helpText("This page helps simulate how many generations a gene drive would take to be spread out the entire population (i.e., gene drive frequency = 1)."),
+  helpText("Simulate how many generations a gene drive would take to be spread out in a population. This model assumes: 1) Male and female contributions are equal, 2) species is semelparous, and 3) mortality or survival is equal between wild and gene-drive individuals."),
+  helpText(" Enter a population size and a number of gene-drive individuals to be released at F0."),
   #Input
-  sidebarLayout(
-    sidebarPanel(
-      numericInput(inputId = "popsize",label = "Wild population size (individual)", 100),
-      numericInput(inputId = "release",label = "Released gene drive (individual)", 20),
-      selectInput(inputId = "drawline", label = "Draw regression", choices = c("None"="none","Logistic regression"="logistic","Linear regression"="linear")),
-      actionButton("go", label="Simulate")
-  
+  fluidRow(
+    column(3,
+      sidebarPanel( width = 14,
+        numericInput(inputId = "popsize",label = "Wild population size (individual)", 100),
+        numericInput(inputId = "release",label = "F0 gene drive (individual)", 20),
+        selectInput(inputId = "drawline", label = "Draw regression", choices = c("None"="none","Logistic regression"="logistic","Linear regression"="linear")),
+        conditionalPanel(condition = "input.drawline == 'logistic'",
+                         checkboxInput(inputId = "se1", label = "Include 95% confidence interval")),
+        conditionalPanel(condition = "input.drawline == 'linear'",
+                         checkboxInput(inputId = "se2", label = "Include 95% confidence interval")),
+        actionButton("go", label="Simulate"),
+        helpText("*Computing time will increase with the increasing ratio of population size to F0 gene drive.")
+      )
     ),
-    mainPanel(
-      #Output
+    column(7,
+      #Output plot
       plotOutput(outputId = "plot1")
+    ),
+    column(2,
+      #output table
+      tableOutput('tbl')     
     )
   )
 )
@@ -27,7 +38,7 @@ server <- function(input, output){
     if(wild > 90){
         showModal(modalDialog(
           title="Important message",
-          "The ratio of wild population to gene drive is large. Simulation will take a few minutes or longer. Please be patient!", easyClose=T
+          "The ratio of wild population to gene drive is large. Simulation might take a few minutes or longer. Please be patient!", easyClose=T
         ))
     }
 
@@ -65,9 +76,8 @@ server <- function(input, output){
       removeNotification(id = paste0("F",gen))
     }
     #Create plot
-    ggplot(data=df, aes(x=X0, y=driveFreq))+
+    gplot <- ggplot(data=df, aes(x=X0, y=driveFreq))+
       geom_point()+
-      ggtitle("Gene Drive Frequency Changes across Generations")+
       xlab("Generation")+ylab("Gene drive frequency")+
       ylim(0,1)+
       scale_x_continuous(breaks=seq(0, nrow(df), 1))+
@@ -75,14 +85,28 @@ server <- function(input, output){
       theme(axis.title = element_text(size=14),
             axis.text = element_text(size=12))+
       if(input$drawline == "logistic"){
-        stat_smooth(method="glm", method.args=list(family="binomial"), se=F)
+        if(input$se1){
+          stat_smooth(method="glm", method.args=list(family="binomial"), se=T)
+        }else {
+          stat_smooth(method="glm", method.args=list(family="binomial"), se=F)
+        }
       } else if(input$drawline == "linear"){
-        stat_smooth(method = "lm", se = F)
+        if(input$se2){
+          stat_smooth(method = "lm", se=T)
+        }else {
+          stat_smooth(method = "lm", se=F)
+        }
       }
-    
+    #change table column names
+    names(df) <- c("Gen.", "Freq.")
+    df$Gen. <- as.integer(df$Gen.)
+    list(df = df, gplot = gplot)
   })
   output$plot1 <- renderPlot({
-    data()
+    data()$gplot
+  })
+  output$tbl <- renderTable({
+    data()$df
   })
 }
 
