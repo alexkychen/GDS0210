@@ -9,15 +9,25 @@ ui <- fluidPage(
   fluidRow(
     column(3,
       sidebarPanel( width = 14,
-        numericInput(inputId = "popsize",label = "Wild population size (individual)", 100),
-        numericInput(inputId = "release",label = "F0 gene drive (individual)", 20),
-        selectInput(inputId = "drawline", label = "Draw regression", choices = c("None"="none","Logistic regression"="logistic","Linear regression"="linear")),
-        conditionalPanel(condition = "input.drawline == 'logistic'",
-                         checkboxInput(inputId = "se1", label = "Include 95% confidence interval")),
-        conditionalPanel(condition = "input.drawline == 'linear'",
-                         checkboxInput(inputId = "se2", label = "Include 95% confidence interval")),
-        actionButton("go", label="Simulate"),
-        helpText("*Computing time will increase with the increasing ratio of population size to F0 gene drive.")
+        tabsetPanel(
+          tabPanel(title = "Basic",
+            helpText(""),
+            numericInput(inputId = "popsize",label = "Wild population size (individual)", 100),
+            numericInput(inputId = "release",label = "F0 gene drive (individual)", 20),
+            selectInput(inputId = "drawline", label = "Draw regression", choices = c("None"="none","Logistic regression"="logistic","Linear regression"="linear")),
+            conditionalPanel(condition = "input.drawline == 'logistic'",
+                             checkboxInput(inputId = "se1", label = "Include 95% confidence interval")),
+            conditionalPanel(condition = "input.drawline == 'linear'",
+                            checkboxInput(inputId = "se2", label = "Include 95% confidence interval")),
+            actionButton("go", label="Simulate"),
+            helpText("*Computing time will increase with the increasing ratio of population size to F0 gene drive.")
+          ),
+          tabPanel(title = "Advanced",
+            helpText("Under construction..."),
+            numericInput(inputId = "popsize",label = "Wild population size (individual)", 100),
+            numericInput(inputId = "release",label = "F0 gene drive (individual)", 20)
+          )
+        )
       )
     ),
     column(7,
