@@ -50,7 +50,8 @@ ui <- fluidPage(
     ),
     column(6,
       #Output plot
-      plotOutput(outputId = "plot1")
+      plotOutput(outputId = "plot1"),
+      textOutput(outputId = "text1")
     ),
     column(2,
       #output table
@@ -130,11 +131,23 @@ server <- function(input, output){
     df$Gen. <- as.integer(df$Gen.)
     list(df = df, gplot = gplot)
   })
+  #Output some text message when simulate button on Advanced tab was hit
+  text <- eventReactive(input$go2, {
+    showModal(modalDialog(
+      title="Simulation not available ",
+      "Sorry, We are still working on the Advanced gene drive model.", easyClose=T
+    ))
+  })
+  
+  #render outputs
   output$plot1 <- renderPlot({
     data()$gplot
   })
   output$tbl <- renderTable({
     data()$df
+  })
+  output$text1 <- renderText({
+    text()
   })
 }
 
