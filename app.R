@@ -3,15 +3,14 @@ library(ggplot2)
 
 ui <- fluidPage(
   titlePanel("Gene drive simulator"),
-  helpText("Simulate how many generations a gene drive would take to be spread out in a population. This model assumes: 1) Male and female contributions are equal, 2) species is semelparous, and 3) mortality or survival is equal between wild and gene-drive individuals."),
-  helpText(" Enter a population size and a number of gene-drive individuals to be released at F0."),
+  helpText("Simulate how many generations a gene drive construct would take to spread through a population. The basic model assumes: 1) Male and female contributions are equal, 2) species is semelparous, and 3) mortality or survival is equal between wild and gene-drive individuals."),
   #Input
   fluidRow(
-    column(3,
+    column(4,
       sidebarPanel( width = 14,
         tabsetPanel(
           tabPanel(title = "Basic",
-            helpText(""),
+            helpText("Enter a population size and a number of gene-drive individuals to be released at F0."),
             numericInput(inputId = "popsize",label = "Wild population size (individual)", 100),
             numericInput(inputId = "release",label = "F0 gene drive (individual)", 20),
             selectInput(inputId = "drawline", label = "Draw regression", choices = c("None"="none","Logistic regression"="logistic","Linear regression"="linear")),
@@ -20,17 +19,36 @@ ui <- fluidPage(
             conditionalPanel(condition = "input.drawline == 'linear'",
                             checkboxInput(inputId = "se2", label = "Include 95% confidence interval")),
             actionButton("go", label="Simulate"),
-            helpText("*Computing time will increase with the increasing ratio of population size to F0 gene drive.")
+            helpText("*Computing time will increase with an increasing ratio of population size to F0 gene-drive individuals.")
           ),
           tabPanel(title = "Advanced",
-            helpText("Under construction..."),
-            numericInput(inputId = "popsize",label = "Wild population size (individual)", 100),
-            numericInput(inputId = "release",label = "F0 gene drive (individual)", 20)
+            helpText("This section is under construction..."),
+            numericInput(inputId = "popsizeAd",label = "Wild population size (individual)", 100),
+            radioButtons(inputId = "sexratio", label = "Sex ratio", choices = c("Female:Male = 1:1"="F=M","Female > Male"="F>M", "Male > Female"="M>F")),
+            conditionalPanel(condition = "input.sexratio == 'F>M'",
+                             sliderInput(inputId = "FmM", label = "Male:Female =", min=0.1, max=1, value=0.5)),
+            conditionalPanel(condition = "input.sexratio == 'M>F'",
+                             sliderInput(inputId = "MmF", label = "Female:Male =", min=0.1, max=1, value=0.5)),
+            numericInput(inputId = "releaseM",label = "Male F0 gene drive (individual)", 20),
+            numericInput(inputId = "releaseF",label = "Female F0 gene drive (individual)", 20),
+            selectInput(inputId = "reprod", label = "Reproductive mode", choices = c("Semelparity"="semelparous","Iteroparity"="iteroparous")),
+            conditionalPanel(condition = "input.reprod == 'iteroparous'",
+                             sliderInput(inputId = "lifespan", label = "Life span (yr)", min=1, max=50, value=10)),
+            sliderInput(inputId = "agematurM", label = "Male maturity age (yr)", min=1, max=10, value=3),
+            sliderInput(inputId = "agematurF", label = "Female maturity age (yr)", min=1, max=10, value=3),
+            selectInput(inputId = "drawlineAd", label = "Draw regression", choices = c("None"="none","Logistic regression"="logistic","Linear regression"="linear")),
+            conditionalPanel(condition = "input.drawlineAd == 'logistic'",
+                             checkboxInput(inputId = "se3", label = "Include 95% confidence interval")),
+            conditionalPanel(condition = "input.drawlineAd == 'linear'",
+                             checkboxInput(inputId = "se4", label = "Include 95% confidence interval")),
+            actionButton("go2", label="Simulate"),
+            helpText("*Computing time will increase with an increasing ratio of population size to F0 gene-drive individuals.")
           )
         )
-      )
+      ),
+      p("The source code of this page can be found on Github via the ", a(href="https://github.com/alexkychen/GDS0210/blob/master/app.R", "link here"),".")
     ),
-    column(7,
+    column(6,
       #Output plot
       plotOutput(outputId = "plot1")
     ),
