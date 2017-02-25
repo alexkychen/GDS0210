@@ -13,6 +13,8 @@ ui <- fluidPage(
             helpText("Enter a population size and a number of gene-drive individuals to be released at F0."),
             numericInput(inputId = "popsize",label = "Wild population size (individual)", 100),
             numericInput(inputId = "release",label = "F0 gene drive (individual)", 20),
+            verbatimTextOutput(outputId = "text2"),
+            helpText("*Ratio greater than 125:1 may fail to simulate due to timeout."),
             selectInput(inputId = "drawline", label = "Draw regression", choices = c("None"="none","Logistic regression"="logistic","Linear regression"="linear")),
             conditionalPanel(condition = "input.drawline == 'logistic'",
                              checkboxInput(inputId = "se1", label = "Include 95% confidence interval")),
@@ -103,6 +105,7 @@ server <- function(input, output){
       data <- c(gen, driveFreq)
       df <- rbind(df, data)
       removeNotification(id = paste0("F",gen))
+      
     }
     #Create plot
     gplot <- ggplot(data=df, aes(x=X0, y=driveFreq))+
@@ -126,6 +129,7 @@ server <- function(input, output){
           stat_smooth(method = "lm", se=F)
         }
       }
+    
     #change table column names
     names(df) <- c("Gen.", "Freq.")
     df$Gen. <- as.integer(df$Gen.)
@@ -135,7 +139,7 @@ server <- function(input, output){
   text <- eventReactive(input$go2, {
     showModal(modalDialog(
       title="Simulation not available ",
-      "Sorry, We are still working on the Advanced gene drive model.", easyClose=T
+      "Sorry, we are still working on the Advanced gene drive model.", easyClose=T
     ))
   })
   
@@ -148,6 +152,10 @@ server <- function(input, output){
   })
   output$text1 <- renderText({
     text()
+  })
+  output$text2 <- renderText({
+    wildperdrive <- round(input$popsize / input$release)
+    paste0("Wild:Drive = ",wildperdrive,":1")
   })
 }
 
