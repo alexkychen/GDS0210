@@ -1,6 +1,61 @@
 library(shiny)
 library(ggplot2)
 
+#Define global functions
+
+#1.Basic gene drive reproduction
+driveNextGen <- function(wild=NULL, drive=NULL){
+  F0 <- c(rep("W", wild*2), rep("G", drive*2)) #F0 gametes
+  F1 <- NULL
+  mixindex <- sample(length(F0))#create sampling index
+  for (i in seq(1, length(mixindex), 2)){
+    pair <- F0[mixindex[c(i, i+1)]] #Get every two individuals as a pair
+    if("W" %in% pair & "G" %in% pair){
+      pair <- c("G","G")
+      F1 <- c(F1, pair)
+    }else{
+      F1 <- c(F1, pair)
+    }
+  }
+  return(F1)
+}
+
+#2.Check wild to drive ratio in basic model/Pop out warning message
+checkRatioBasic <- function(wild=NULL, drive=NULL){
+  Wild <- round(wild / drive)
+  if(Wild >= 90){
+    showModal(modalDialog(
+      title="Important message", "The ratio of wild population to gene drive is large. Simulation might take a few minutes or longer. Please be patient!", easyClose=T))
+  }
+}
+
+#3.Simulate basic gene drive freq.
+simulateBasicDrive <- function(wild=NULL, drive=NULL){
+  #Estimate the initial gene drive frequency and create a data frame to save results
+  driveFreq <- drive / (drive + wild)
+  df <- data.frame(0, driveFreq)
+  gen <- 0
+  #Simulate gene drive freq across generations until drive freq = 1
+  while(!is.na(wild)){ #keep looping until wild becomes NA
+    gen <- gen + 1
+    showNotification(ui=paste0("Simulating F",gen," generation..."), id = paste0("F",gen), duration = NULL)
+    res <- driveNextGen(wild=wild, drive=drive)
+    restb <- table(res)
+    wild <- restb[2]
+    drive <- restb[1]
+    driveFreq <- restb[1]/sum(restb) #restb[1] is restb[names(restb)=="G]
+    data <- c(gen, driveFreq)
+    df <- rbind(df, data)
+    removeNotification(id = paste0("F",gen))
+  }
+  names(df) <- c("Gen.", "Freq.")
+  df$Gen. <- as.integer(df$Gen.)
+  return(df)
+}
+
+
+
+### create UI
 ui <- fluidPage(
   titlePanel("Gene drive simulator"),
   helpText("Simulate how many generations a gene drive construct would take to spread through a population. The basic model assumes: 1) Male and female contributions are equal, 2) species is semelparous, and 3) mortality or survival is equal between wild and gene-drive individuals."),
@@ -26,7 +81,7 @@ ui <- fluidPage(
           tabPanel(title = "Advanced",
             helpText("This section is under construction..."),
             numericInput(inputId = "popsizeAd",label = "Wild population size (individual)", 100),
-            radioButtons(inputId = "sexratio", label = "Sex ratio", choices = c("Female:Male = 1:1"="F=M","Female > Male"="F>M", "Male > Female"="M>F")),
+            radioButtons(inputId = "sexratio", label = "Sex ratio in wild population", choices = c("Female:Male = 1:1"="F=M","Female > Male"="F>M", "Male > Female"="M>F")),
             conditionalPanel(condition = "input.sexratio == 'F>M'",
                              sliderInput(inputId = "FmM", label = "Male:Female =", min=0.1, max=1, value=0.5)),
             conditionalPanel(condition = "input.sexratio == 'M>F'",
@@ -66,49 +121,14 @@ server <- function(input, output){
   data <- eventReactive(input$go, {
     wild <- round(input$popsize / input$release)
     drive <- 1
-    if(wild > 90){
-        showModal(modalDialog(
-          title="Important message",
-          "The ratio of wild population to gene drive is large. Simulation might take a few minutes or longer. Please be patient!", easyClose=T
-        ))
-    }
+    #Check if input ratio (wild:drive) greater than 90. If so, pop out warning message 
+    checkRatioBasic(wild = wild, drive = drive)
 
-    #define a function to get the next gene drive generation
-    driveNextGen <- function(wild=NULL, drive=NULL){
-      F0 <- c(rep("W", wild*2), rep("G", drive*2)) #F0 gametes
-      F1 <- NULL
-      mixindex <- sample(length(F0))#create sampling index
-      for (i in seq(1, length(mixindex), 2)){
-        pair <- F0[mixindex[c(i, i+1)]] #Get every two individuals as a pair
-        if("W" %in% pair & "G" %in% pair){
-          pair <- c("G","G")
-          F1 <- c(F1, pair)
-        }else{
-          F1 <- c(F1, pair)
-        }
-      }
-      return(F1)
-    }
-    #Estimate the initial gene drive frequency and create a data frame to save results
-    driveFreq <- drive / (drive + wild)
-    df <- data.frame(0, driveFreq)
-    gen <- 0
-    #Simulate gene drive freq across generations until drive freq = 1
-    while(!is.na(wild)){ #keep looping until wild becomes NA
-      gen <- gen + 1
-      showNotification(ui=paste0("Simulating F",gen," generation..."), id = paste0("F",gen), duration = NULL)
-      res <- driveNextGen(wild=wild, drive=drive)
-      restb <- table(res)
-      wild <- restb[2]
-      drive <- restb[1]
-      driveFreq <- restb[1]/sum(restb) #restb[1] is restb[names(restb)=="G]
-      data <- c(gen, driveFreq)
-      df <- rbind(df, data)
-      removeNotification(id = paste0("F",gen))
-      
-    }
+    #Simulate gene drive frequency and create a data frame to save results
+    df <- simulateBasicDrive(wild = wild, drive = drive)
+
     #Create plot
-    gplot <- ggplot(data=df, aes(x=X0, y=driveFreq))+
+    gplot <- ggplot(data=df, aes(x=Gen., y=Freq.))+
       geom_point()+
       xlab("Generation")+ylab("Gene drive frequency")+
       ylim(0,1)+
@@ -131,8 +151,6 @@ server <- function(input, output){
       }
     
     #change table column names
-    names(df) <- c("Gen.", "Freq.")
-    df$Gen. <- as.integer(df$Gen.)
     list(df = df, gplot = gplot)
   })
   #Output some text message when simulate button on Advanced tab was hit
